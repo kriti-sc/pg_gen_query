@@ -1,0 +1,4 @@
+comment = 'convert text to title format'
+default_version = '1.0'
+module_pathname = '$libdir/pg_make_title'
+relocatable = true

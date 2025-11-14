@@ -26,6 +26,7 @@ extern "C" {
 #include <cctype>
 
 #include "api_key.hpp"
+#include "utils.hpp"
 #include "openai/openai.hpp"
 
 extern "C" {
@@ -33,6 +34,23 @@ extern "C" {
 // Required PostgreSQL macros
 PG_MODULE_MAGIC;
 PG_FUNCTION_INFO_V1(convert_to_title);
+
+static char *GlobalTableInfoString = NULL;
+
+/* Runs automatically when extension is loaded */
+void
+_PG_init(void)
+{
+    if (GlobalTableInfoString == NULL)
+    {
+        std::string data = collect_tables_and_columns();
+
+        MemoryContext old = MemoryContextSwitchTo(TopMemoryContext);
+        GlobalTableInfoString = pstrdup(data.c_str());
+        MemoryContextSwitchTo(old);
+    }
+}
+
 
 // Function definition
 Datum convert_to_title(PG_FUNCTION_ARGS)
@@ -79,74 +97,12 @@ Datum convert_to_title(PG_FUNCTION_ARGS)
 
     // MemoryContextSwitchTo(oldcontext);
 
-    Relation rel = table_open(RelationRelationId, AccessShareLock);
-    elog(DEBUG1, "list_tables: opened pg_class Relation");
-    TableScanDesc scan = table_beginscan(rel, SnapshotSelf, 0, NULL);
-    elog(DEBUG1, "list_tables: began scan");
-
-    std::string table_list;
-
-    HeapTuple tuple;
-    while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
-    {
-        Form_pg_class rel_form = (Form_pg_class)GETSTRUCT(tuple);
-        
-        // Only include ordinary tables
-        if (rel_form->relkind == RELKIND_RELATION || rel_form->relkind == RELKIND_VIEW)
-        {
-            const char *nspname = get_namespace_name(rel_form->relnamespace);
-
-            // Skip system schemas
-            if (strcmp(nspname, "pg_catalog") == 0 ||
-                strcmp(nspname, "information_schema") == 0 )
-                continue;
-            
-            elog(DEBUG1, "list_tables: found table %s", NameStr(rel_form->relname));
-            char *relname = NameStr(rel_form->relname);
-
-            Oid relid = RelnameGetRelid(relname);
-            if (!OidIsValid(relid))
-                ereport(ERROR, (errmsg("table \"%s\" does not exist", relname)));
-
-            Relation rel = relation_open(relid, AccessShareLock);
-
-            TupleDesc desc = RelationGetDescr(rel);
-            int natts = desc->natts;
-            std::string columns;
-            for (int i = 0; i < natts; i++)
-            {
-                Form_pg_attribute attr = TupleDescAttr(desc, i);
-                if (attr->attisdropped || attr->attnum <= 0)
-                    continue;
-
-                const char *colname = NameStr(attr->attname);
-                const char *typename_str = format_type_be(attr->atttypid);
-                std::string coldef = std::string(colname) + ":" + std::string(typename_str);
-                
-                if (i > 0)
-                    columns += ", ";
-                columns += coldef;
-            }
-            elog(DEBUG1, "list_tables: columns for table %s: %s", relname, columns.c_str());
-            relation_close(rel, AccessShareLock);
-
-            table_list += "{\"table_name\":\"" + std::string(relname) + "\", \"columns\":\"" + columns + "\"},\n";
-
-            // Datum values[2];
-            // bool nulls[2] = {false, false};
-            // values[0] = CStringGetTextDatum(relname);
-            // values[1] = CStringGetTextDatum(columns.c_str());
-            // tuplestore_putvalues(tupstore, tupdesc, values, nulls);
-        }
-    }
-
-    table_endscan(scan);
-    table_close(rel, AccessShareLock);
+    // --- moved to utils
 
     // tuplestore_donestoring(tupstore);
     // MemoryContextSwitchTo(oldcontext);
 
-    std::string system_prompt = "You are a helpful assistant that writes SQL queries based on the following database schema.\n\nSchema: [" + table_list + "]";
+    std::string system_prompt = "You are a helpful assistant that writes SQL queries based on the following database schema.\n\nSchema: [" + std::string(GlobalTableInfoString) + "]";
     std::string user_query = "Give me the SQL for finding out " +std::string(input_cstr) + ". Do not include any explanation, comments, or text.";
 
     nlohmann::json chat_json = {
@@ -158,11 +114,11 @@ Datum convert_to_title(PG_FUNCTION_ARGS)
         {"temperature", 0}
     };
 
-    elog(DEBUG1, "Sending request to OpenAI: %s", chat_json.dump(2).c_str());
+    // elog(DEBUG1, "Sending request to OpenAI: %s", chat_json.dump(2).c_str());
 
     openai::start(open_api_key); 
     auto chat = openai::chat().create(chat_json);
-    elog(INFO, "AI Response: %s", chat.dump(2).c_str());
+    // elog(INFO, "AI Response: %s", chat.dump(2).c_str());
     std::string sql_query = chat["choices"][0]["message"]["content"].get<std::string>();
 
 
@@ -171,7 +127,7 @@ Datum convert_to_title(PG_FUNCTION_ARGS)
     text* result = (text *)palloc(sql_query.size() + VARHDRSZ);
     SET_VARSIZE(result, sql_query.size() + VARHDRSZ);
     memcpy(VARDATA(result), sql_query.data(), sql_query.size());
-    elog(DEBUG1, "Preparing to return");
+    
     PG_RETURN_TEXT_P(result);
 
     // return (Datum) 0;

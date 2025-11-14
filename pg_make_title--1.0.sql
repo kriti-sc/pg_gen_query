@@ -20,7 +20,7 @@
 -- LANGUAGE C STRICT VOLATILE;
 
 CREATE FUNCTION convert_to_title(text)
-RETURNS TABLE (table_name text, columns text )
+RETURNS TEXT
 AS 'MODULE_PATHNAME', 'convert_to_title'
 LANGUAGE C STABLE;
 -- LANGUAGE C IMMUTABLE STRICT;

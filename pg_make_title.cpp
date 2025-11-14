@@ -25,6 +25,9 @@ extern "C" {
 #include <string>
 #include <cctype>
 
+#include "api_key.hpp"
+#include "openai/openai.hpp"
+
 extern "C" {
 
 // Required PostgreSQL macros
@@ -44,6 +47,20 @@ Datum convert_to_title(PG_FUNCTION_ARGS)
     if (!rsinfo) {
         elog(ERROR, "list_tables: fcinfo->resultinfo is NULL");
     }
+
+    openai::start(open_api_key);
+
+    auto chat = openai::chat().create(R"(
+    {
+        "model": "gpt-3.5-turbo",
+        "messages":[{"role":"user", "content":"Say hi back, and ask me my name!"}],
+        "max_tokens": 7,
+        "temperature": 0
+    }
+    )"_json);
+
+    elog(INFO, "AI Response: %s", chat.dump(2).c_str());
+
 
     TupleDesc tupdesc;
     Tuplestorestate *tupstore;

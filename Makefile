@@ -8,8 +8,9 @@ CC = clang++
 CXXFLAGS = -std=c++17 -Wall -Wextra -fPIC
 
 # Link C++ standard library explicitly
-PG_CPPFLAGS = -I$(shell pg_config --includedir-server)
-SHLIB_LINK += -lc++
+PG_CPPFLAGS = -I$(shell pg_config --includedir-server) \
+               -I/opt/homebrew/opt/curl/include
+SHLIB_LINK += -lc++ -L/opt/homebrew/opt/curl/lib -lcurl
 
 # Force the final link step to use clang++
 override LDFLAGS += -lc++

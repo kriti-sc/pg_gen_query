@@ -99,7 +99,7 @@ However, an external tool that interfaces with the database can execute arbitrar
 
 Secondly, extensions run inside the database process and consume memory from the database’s own stack. This means they must be extremely careful not to degrade database performance. For this use case, the system also needs to maintain conversational context, since data exploration is inherently iterative and interactive. Storing that context increases memory demands and heightens the need for careful memory management.
 
-Moreover, table names, column names, and datatypes rarely capture the true semantics of the underlying data. Representing that semantic layer requires additional context and further amplifies the memory requirements—another challenge when operating inside the database process.
+Moreover, table names, column names, and datatypes rarely capture the true semantics of the underlying data. Representing that semantic layer requires additional context and further amplifies the memory requirements, which is another challenge when operating inside the database process.
 
 Not only does an external tool avoid the complexities of in-database memory management, it is also far better suited for user-facing workflows that rely on an interactive flow. Additionally, it can leverage third-party systems to manage conversational context for LLMs which is a non-trivial problem in itself.
 

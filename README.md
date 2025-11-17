@@ -34,6 +34,7 @@ tpchsf1=# select * from pg_gen_query('get all nation names');
  SELECT n_name FROM nation;
 (1 row)
 
+
 tpchsf1=# select * from pg_gen_query('get the top 5 customers');
                         pg_gen_query
 ------------------------------------------------------------
@@ -41,6 +42,34 @@ tpchsf1=# select * from pg_gen_query('get the top 5 customers');
  FROM customer                                             +
  ORDER BY c_acctbal DESC                                   +
  LIMIT 5;
+(1 row)
+
+
+tpchsf1=# select * from pg_gen_query('find names of top 5 customers where top 5 is order size');
+             pg_gen_query
+--------------------------------------
+ SELECT c_name                       +
+ FROM customer                       +
+ JOIN orders ON c_custkey = o_custkey+
+ GROUP BY c_name                     +
+ ORDER BY COUNT(o_orderkey) DESC     +
+ LIMIT 5;
+(1 row)
+
+
+tpchsf1=# select * from pg_gen_query('find names of suppliers of top 5 most popular products');
+                                  pg_gen_query
+--------------------------------------------------------------------------------
+ SELECT s.s_suppkey, s.s_name, s.s_address, s.s_phone, s.s_acctbal, s.s_comment+
+ FROM supplier s                                                               +
+ JOIN partsupp ps ON s.s_suppkey = ps.ps_suppkey                               +
+ JOIN (                                                                        +
+     SELECT l_partkey, SUM(l_quantity) AS total_quantity                       +
+     FROM lineitem                                                             +
+     GROUP BY l_partkey                                                        +
+     ORDER BY total_quantity DESC                                              +
+     LIMIT 5                                                                   +
+ ) top_items ON ps.ps_partkey = top_items.l_partkey;
 (1 row)
 
 ```

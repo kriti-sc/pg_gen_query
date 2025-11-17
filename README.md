@@ -46,12 +46,6 @@ tpchsf1=# select * from pg_gen_query('get the top 5 customers');
 ```
 
 
-
-
-
-<screenshots>
-
-
 ### Mechanics
 
 This extension works by developing an "understanding" of the entire schema and then passing that understanding along with the user query to the LLM.

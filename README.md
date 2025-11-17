@@ -1,4 +1,4 @@
-## README
+## pg_gen_query
 
 This extension provides a natural language query interface to Postgres, allowing you do to something like `SELECT * FROM pg_gen_query('number of events from Texas')`.
 
@@ -21,10 +21,33 @@ CREATE EXTENSION pg_gen_query;
 SELECT * FROM pg_qen_query('get all nation names');
 ```
 
+> **Note:** first time execution will be slow as the extension develops an understanding of the schema on initialization. This understanding is stored therefore, subsequent executions will be faster.
 
-> **Note:** first time execution will be slow as the extension develops an understanding of the schema. This understanding is stored therefore, subsequent executions will be faster.
+### Example
 
-Below is usage against the TPCH schema. 
+Below is sample usage against the TPCH schema. 
+
+```
+tpchsf1=# select * from pg_gen_query('get all nation names');
+        pg_gen_query
+----------------------------
+ SELECT n_name FROM nation;
+(1 row)
+
+tpchsf1=# select * from pg_gen_query('get the top 5 customers');
+                        pg_gen_query
+------------------------------------------------------------
+ SELECT c_custkey, c_name, c_phone, c_acctbal, c_mktsegment+
+ FROM customer                                             +
+ ORDER BY c_acctbal DESC                                   +
+ LIMIT 5;
+(1 row)
+
+```
+
+
+
+
 
 <screenshots>
 

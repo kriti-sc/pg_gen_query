@@ -1,0 +1,4 @@
+comment = 'generate SQL query using natural language'
+default_version = '1.0'
+module_pathname = '$libdir/pg_gen_query'
+relocatable = true

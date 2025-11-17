@@ -20,9 +20,7 @@ extern "C" {
 
 std::string collect_tables_and_columns() {
     Relation rel = table_open(RelationRelationId, AccessShareLock);
-    elog(DEBUG1, "list_tables: opened pg_class Relation");
     TableScanDesc scan = table_beginscan(rel, SnapshotSelf, 0, NULL);
-    elog(DEBUG1, "list_tables: began scan");
 
     std::string table_list;
 
@@ -71,12 +69,6 @@ std::string collect_tables_and_columns() {
             relation_close(rel, AccessShareLock);
 
             table_list += "{\"table_name\":\"" + std::string(relname) + "\", \"columns\":\"" + columns + "\"},\n";
-
-            // Datum values[2];
-            // bool nulls[2] = {false, false};
-            // values[0] = CStringGetTextDatum(relname);
-            // values[1] = CStringGetTextDatum(columns.c_str());
-            // tuplestore_putvalues(tupstore, tupdesc, values, nulls);
         }
     }
 
